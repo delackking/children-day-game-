@@ -1,0 +1,116 @@
+// Production PostgreSQL schema for CARNIVAL — The Virtual Children's Day
+// Compatible with Prisma ORM on PostgreSQL free-tier providers (Neon, Supabase, RDS).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Room {
+  id              String        @id @default(cuid())
+  code            String        @unique
+  name            String
+  hostPlayerId    String
+  hostSecretHash  String
+  maxPlayers      Int           @default(20)
+  locked          Boolean       @default(false)
+  chatDisabled    Boolean       @default(false)
+  eventPhase      String        @default("free_play") // free_play | opening | competition | group_dance | ceremony
+  treasureActive  Boolean       @default(false)
+  djTrackId       String?
+  djYoutubeId     String?
+  djYoutubeTitle  String?
+  djIsPlaying     Boolean       @default(false)
+  djVolume        Int           @default(60)
+  djLightingMode  String        @default("festive")
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  players         Player[]
+  transactions    Transaction[]
+  scores          ArcadeScore[]
+  treasures       TreasureClaim[]
+  reports         PlayerReport[]
+}
+
+model Player {
+  id            String        @id @default(cuid())
+  roomId        String
+  room          Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sessionToken  String
+  name          String
+  isHost        Boolean       @default(false)
+  muted         Boolean       @default(false)
+  coins         Int           @default(500)
+  avatarJson    Json
+  inventoryJson Json
+  statsJson     Json
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  transactions  Transaction[]
+  scores        ArcadeScore[]
+  treasures     TreasureClaim[]
+
+  @@index([roomId])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  type      String   // purchase | reward | host_grant | host_deduct
+  amount    Int
+  itemId    String?
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([roomId])
+  @@index([playerId])
+}
+
+model ArcadeScore {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  gameId    String
+  score     Int
+  won       Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([roomId, gameId])
+}
+
+model TreasureClaim {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  treasureId  String
+  rewardCoins Int
+  claimedAt   DateTime @default(now())
+
+  @@unique([roomId, treasureId])
+}
+
+model PlayerReport {
+  id               String   @id @default(cuid())
+  roomId           String
+  room             Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reporterId       String
+  targetPlayerId   String
+  reason           String
+  resolved         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([roomId])
+}
