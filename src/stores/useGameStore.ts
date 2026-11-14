@@ -138,7 +138,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setConnected: (connected) => set({ connected }),
 
   setSessionData: ({ room, playerId, sessionToken, hostSecret }) => {
-    document.body.dataset.state = 'playing';
+    if (typeof document !== 'undefined') document.body.dataset.state = 'playing';
     const local = room.players[playerId];
     set({
       screen: 'playing',
@@ -288,7 +288,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setActiveMelaGame: (activeMelaGame) => set({ activeMelaGame }),
 
   leaveRoom: () => {
-    document.body.dataset.state = 'title';
+    if (typeof document !== 'undefined') document.body.dataset.state = 'title';
     set({
       screen: 'title',
       room: null,
